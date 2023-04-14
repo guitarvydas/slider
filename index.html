@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Slider</title>
+    <style>
+div.bed { width: 100%; display: flex; gap: 1pc; flex-wrap: nowrap; justify-content: space-between; height: 100vh; }
+div.gui { flex: 30%; overflow-y: scroll; }
+div.instructions { margin-bottom: 1pc; font-style: italic; }
+div.slide_controls { background: black; color: white; font-family: sans-serif; font-size: smaller; padding: 2px 4px; display: flex; justify-content: space-between; }
+div.slide_controls button { line-height: 10px; background: red; color: white; }
+div.slides {  flex: 70%; overflow-y: scroll; }
+div.slide {
+    width: 100%; border: thin gray solid; padding: 1pc;
+    display: flex; flex-direction: column; justify-content: center;
+    align-items: center;  margin: 0 1pc 1pc 0;
+    box-shadow: 5px 5px 5px 1px gray;
+}
+textarea { min-height: 5pc; margin-bottom: 1pc; width: 100%; box-sizing: border-box; }
+    </style>
+    <link rel="stylesheet" href="style.css">
+  </head>
+  <body>
+    <div id="content"></div>
+    <script src="https://unpkg.com/ohm-js@16.6.0/dist/ohm.min.js"></script>
+    <script src="https://unpkg.com/mithril@2.2.2/mithril.js"></script>
+    <script src="slider.js"></script>
+  </body>
+</html>
