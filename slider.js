@@ -22,7 +22,7 @@ var presentation = [
 "* we want something lightweight",
 "* like \"markdown\" for slides",
     "* but, less ad-hoc than markdown",
-    "* The 'good parts' of heavyweights like Powerpoint and Keynote."
+    "* The 'good parts' of heavyweights like Powerpoint and Keynote.",
     ""
 ],
     [
@@ -66,7 +66,7 @@ var presentation = [
     ""
 ],[
 "Github Repo",
-"...",
+"https://github.com/guitarvydas/slider",
     ""
 ],[
 "Video",
@@ -74,8 +74,8 @@ var presentation = [
     ""
 ],[
 "Team",
-"* Author: Jos'h Fuller (oofoe)",
-"* Kibitzing: Paul Tarvydas (paultarvydas)",
+"* Jos'h Fuller (oofoe)",
+"* Paul Tarvydas (paultarvydas)",
     ""
 ],
     [
