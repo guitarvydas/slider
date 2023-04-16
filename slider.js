@@ -3,7 +3,8 @@
 const instructions = "Change slide contents here. Use return/enter after each line. Top line is heading.";
 const aspect = screen.width / screen.height;
 
-var presentation = [
+var presentation = null;
+const example = [
     "Welcome to Slider\nA tiny presentation tool.",
     "First line is Title\nFollowing lines, body text.\nEverything centred.",
     "Simple Interface\nUpdate text in left panel...\nLive preview in right!"
@@ -53,6 +54,13 @@ s.addOperation("m", { // Generate Mithril nodes.
 
 // Global Actions
 
+function record() {
+    // ( --) Record current presentation state into URL.
+    
+    history.pushState(presentation, "",
+                      "#" + btoa(JSON.stringify(presentation)));
+}
+
 function jumping(delta) {
     // ( delta --) Move through presentation.
 
@@ -60,6 +68,7 @@ function jumping(delta) {
     if(c < 0) { c = 0 }
     else if(c >= presentation.length) { c = presentation.length - 1; }
     current = c;
+    record();
 }
 
 
@@ -114,7 +123,7 @@ function Designer() {
                          onclick: (e) => vnode.attrs.removing(n) }, "x"))),
                  m("textarea", {
                      style: `aspect-ratio: ${aspect};`,
-                     onfocus: (e) => current = n,
+                     onfocus: (e) => { current = n; record(); },
                      oninput: (e) => vnode.attrs.updating(n, e.target.value) 
                  }, data));
     }
@@ -123,20 +132,9 @@ function Designer() {
 }
 
 
-function Load() {
-    function view() {
-    }
-
-    return { view } 
-}
-
-
-function Edit() {
-
-    function linking() {
-
-    }
-    
+function Page() {
+    let state = "edit";
+        
     function upping(n) {
         // ( n --) Move current slide up, follow.
 
@@ -169,47 +167,53 @@ function Edit() {
         
         presentation[n] = text;
     }
+
+    function flip() {
+        // ( --) Flip state.
+
+        state = { edit: "show", show: "edit" }[flip];
+    }
+
+
+    function oninit(vnode) {
+        if(!presentation) {
+            let incoming = document.location.hash;
+            console.log("-- incoming");
+            console.dir(incoming);
+            if(incoming && "#" === incoming[0]) {
+                presentation = JSON.parse(
+                    atob(incoming.slice(1)));
+            } else {
+                presentation = example;
+            }
+        }
+    }
+
     
     function view(vnode) {
-        return [m("div.gui", 
+        return ["edit" === state && m("div.gui", 
                   m("div.sticky.top-0.flex.flex-col.gap-4px",
                     m("div", instructions),
-                    m("div.flex.gap-1",
+                    m("div.flex.gap-1.justify-between",
                       m("button", {
                         title: "Click to add new slide.",
                         onclick: (e) => presentation.push([
                             "New Slide " + next++]) }, "+ slide"),
                       m("button", {
                           title: "Click to show presentation.",
-                          onclick: (e) => document.location = "#!/show"
+                          onclick: (e) => flip()
                       }, "show"),
-                      m("button", {
-                          title: "Make a link to share presentation with.",
-                          onclick: (e) => linking()
-                      }, "share")
                      )),
                   m("div.tray", 
                     presentation.map((data, n) => m(
                         Designer, { data, n, updating,
                                     upping, duping, removing }))),
                  ),
-                m(Slides, { presentation })];
+                m(Slides, { presentation, state, flip })];
     }
     
-    return { view };
+    return { oninit, view };
 }
 
 
-function Show() {
-    function view(vnode) { return m(Slides, { presentation }); }
-
-    return { view }
-}
-
-
-// m.mount(document.getElementById("content"), Page);
-m.route(document.getElementById("content"), "/edit", {
-    "/load": Load,
-    "/edit": Edit,
-    "/show": Show
-})
+m.mount(document.getElementById("content"), Page);
