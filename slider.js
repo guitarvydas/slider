@@ -11,6 +11,7 @@ const example = [
 ];
 var next = 1;
 var current = 0; // Slide we're currently on.
+var state = "edit"; // edit | show
 
 
 // Ohm.js Grammar and Semantic Function Spec
@@ -61,6 +62,12 @@ function record() {
                       "#" + btoa(JSON.stringify(presentation)));
 }
 
+function flipping() {
+    // ( --) Flip state.
+
+    state = { edit: "show", show: "edit" }[state];
+}
+
 function jumping(delta) {
     // ( delta --) Move through presentation.
 
@@ -81,12 +88,16 @@ function Slide() {
                  vnode.children,
                  m("div.absolute.bottom-30.left-0",
                    m("button.pad-1.dimmed", {
+                       title: "Previous slide.",
                        onclick: (e) => jumping(-1) }, "<<"),
-                   m(m.route.Link, { href: "/edit"},
-                     m("button.pad-1.dimmed", "edit")),
+                   "show" === state && m("button.pad-1.dimmed", {
+                       title: "Edit presentation.",
+                       onclick: (e) => flipping()
+                   }, "edit"),
                   ),
                  m("div.absolute.bottom-30.right-0", 
                    m("button.pad-1.dimmed", {
+                       title: "Next slide.",
                        onclick: (e) => jumping(1) }, ">>"))
                 );
      }
@@ -132,9 +143,7 @@ function Designer() {
 }
 
 
-function Page() {
-    let state = "edit";
-        
+function Page() {        
     function upping(n) {
         // ( n --) Move current slide up, follow.
 
@@ -168,18 +177,9 @@ function Page() {
         presentation[n] = text;
     }
 
-    function flip() {
-        // ( --) Flip state.
-
-        state = { edit: "show", show: "edit" }[flip];
-    }
-
-
     function oninit(vnode) {
         if(!presentation) {
             let incoming = document.location.hash;
-            console.log("-- incoming");
-            console.dir(incoming);
             if(incoming && "#" === incoming[0]) {
                 presentation = JSON.parse(
                     atob(incoming.slice(1)));
@@ -201,7 +201,7 @@ function Page() {
                             "New Slide " + next++]) }, "+ slide"),
                       m("button", {
                           title: "Click to show presentation.",
-                          onclick: (e) => flip()
+                          onclick: (e) => flipping()
                       }, "show"),
                      )),
                   m("div.tray", 
@@ -209,7 +209,7 @@ function Page() {
                         Designer, { data, n, updating,
                                     upping, duping, removing }))),
                  ),
-                m(Slides, { presentation, state, flip })];
+                m(Slides, { presentation })];
     }
     
     return { oninit, view };
