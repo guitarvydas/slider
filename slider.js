@@ -33,20 +33,6 @@ Slide {
 const g = ohm.grammar(g2);
 
 const s = g.createSemantics();
-s.addOperation("a", { // Generate list of lists for debug.
-    _iter(...children) {
-        return children.map(c => c.a());
-    },
-    _terminal() { return this.sourceString; },
-
-    slide(h1, body) { return ["div", h1.a(), body.a()]; },
-    body(line) { return line.a(); },
-    h1(text, nl) { return ["h1", text.a()]; },
-    ul(li) { return ["ul", li.a()]; },
-    li(bullet, space, text, nl) { return ["li", text.a()]; },
-    h2(text, nl) { return ["h2", text.a()]; },
-    text(chars) { return this.sourceString; }
-});
 s.addOperation("m", { // Generate Mithril nodes.
     _iter(...children) {
         return children.map(c => c.m());
@@ -63,20 +49,18 @@ s.addOperation("m", { // Generate Mithril nodes.
     i(_1, text, _2) { return m("i", text.m()); },
     text(chars) { return this.sourceString; }
 });
-s.addOperation("md", { // Generate Mithril nodes.
-    _iter(...children) {
-        return children.map(c => c.md()).join("");
-    },
-    _terminal() { return this.sourceString; },
 
-    slide(h1, body) { return `${h1.md()}${body.md()}`; },
-    body(line) { return line.md(); }, 
-    h1(text, nl) { return `# ${text.md()}\n`; },
-    ul(li) { return li.md(); },
-    li(bullet, space, text, nl) { return `* ${text.md()}\n`; },
-    h2(text, nl) { return `## ${text.md()}\n`; },
-    text(chars) { return this.sourceString; }
-});
+
+// Global Actions
+
+function jumping(delta) {
+    // ( delta --) Move through presentation.
+
+    let c = current + delta;
+    if(c < 0) { c = 0 }
+    else if(c >= presentation.length) { c = presentation.length - 1; }
+    current = c;
+}
 
 
 // Mithril Components
@@ -84,8 +68,15 @@ s.addOperation("md", { // Generate Mithril nodes.
 function Slide() {
     function view(vnode) {
         return m("div.slide", {
-            style: `aspect-ratio: ${aspect};` },
-                 vnode.children);
+            style: `aspect-ratio: ${aspect}; position: relative;` },
+                 vnode.children,
+                 m("div", { style: "position: absolute; left: 0; bottom: 30%;" },
+                   m("button.dimmed", { style: "padding: 1pc;", onclick: (e) => jumping(-1) }, "<<"),
+                   m("button.dimmed", { style: "padding: 1pc;" }, "edit"),
+                  ),
+                 m("div", { style: "position: absolute; right: 0; bottom: 30%"},
+                   m("button.dimmed", { style: "padding: 1pc;", onclick: (e) => jumping(1) }, ">>"))
+                );
      }
   
   return { view };
@@ -179,11 +170,7 @@ function Edit() {
 
 
 function Show() {
-    function view(vnode) {
-        return m("div", { style: "position: relative; display: flex; align-items: stretch;" },
-                 m(Slides, { presentation }),
-                 m("div", { style: "position: absolute; left: 0; bottom: 30%; background: red; width: 128px; height: 128px;" }, "something"));
-    }
+    function view(vnode) { return m(Slides, { presentation }); }
 
     return { view }
 }
