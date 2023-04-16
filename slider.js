@@ -4,133 +4,49 @@ const instructions = "Change slide contents here. Use return/enter after each li
 const aspect = screen.width / screen.height;
 
 var presentation = [
-["Visualizing Text - Slider",
-	"Handmade Jam #0004",
- "April 14-April 16, 2023"],
-    [
-"Existing Slide Software",
-"Slide-making software already exists",
-"But, they are behemoths",
-	"* Powerpoint",
-	"* Keynote",
-	"* Obsidian",
-	"* etc",
-    ""
-    ],
-[
-"Goal: Lightweight",
-"* we want something lightweight",
-"* like \"markdown\" for slides",
-    "* but, less ad-hoc than markdown",
-    "* The 'good parts' of heavyweights like Powerpoint and Keynote."
-    ""
-],
-    [
-	"Technology",
-	"Expect to use...",
-"* Ohm-JS",
-"* Mithril",
-"* pushState() (as inspired by flems.io)",
-	""
-    ],
-    [
-	"Expected benefits",
-	"beyond just making presentations...",
-	"a lightweight, point-form visualizer for text might be used to create",
-	"* README.mds",
-	"* high-level documentation in general.",
-	""
-    ],
-[
-"Elements",
-"* Title",
-"* lines",
-"* bullets",
-    ""
-],[
-"Text Formatting",
-"* italic",
-"* bold",
-    ""
-],[
-"Technologies",
-"* Ohm-JS for pattern matching",
-"* Ohm-JS / JavaScript for actions after pattern matching",
-"* Mithril for formatting Webpage",
-    ""
-],[
-"Lines of Code",
-    "* Grammar: 12 lines",
-    "* Actions: 15 lines",
-    "* Mithril: 66 lines",
-    ""
-],[
-"Github Repo",
-"...",
-    ""
-],[
-"Video",
-"...",
-    ""
-],[
-"Team",
-"* Author: Jos'h Fuller (oofoe)",
-"* Kibitzing: Paul Tarvydas (paultarvydas)",
-    ""
-],
-    [
-	"Appendix - Closing Thoughts",
-	""
-    ],
-    [
-	"Inspiration",
-	""
-    ],
-    [
-	"Did it turn out like we'd hoped?",
-	"",
-    ],
-    [
-	"What Did We Learn?",
-	"",
-    ],
-    [
-	"Bugs",
-	"* need to save intermediate work to allow re-loading",
-	"* italics?",
-	""
-    ],
-    [
-	"Future",
-	""
-    ],
-    [
-	"Appendix - Install / Build",
-	"Nothing to build",
-	"Open _index.html_ in a browser",
-	"",
-    ]
+    "Welcome to Slider\nA tiny presentation tool.",
+    "First line is Title\nFollowing lines, body text.\nEverything centred.",
+    "Simple Interface\nUpdate text in left panel...\nLive preview in right!"
 ];
 var next = 1;
+var current = 0; // Slide we're currently on.
 
 
 // Ohm.js Grammar and Semantic Function Spec
     
-const g2 = String.raw`Slide {
+const g2 = String.raw`
+Slide {
     slide = h1 body*
     body = ul | h2
-    h1 = text nl
+    h1 = line nl?
     ul = li+
-    li = "*" sp text nl
-    h2 = text nl?
-    text = (~nl any)+
+    li = "*" sp line nl?
+    h2 = line nl?
+    line = (i | b | text)+
+    i = "__" (~(nl | "__") any)+ "__"
+    b = "*" (~(nl | "*") any)+ "*"
+    text = (~(nl | "__" | "*") any)+
     sp = (" " | "	")+
     nl = "\r"? "\n"
 }
 `;
 const g = ohm.grammar(g2);
-const s = g.createSemantics();
 
+const s = g.createSemantics();
+s.addOperation("a", { // Generate list of lists for debug.
+    _iter(...children) {
+        return children.map(c => c.a());
+    },
+    _terminal() { return this.sourceString; },
+
+    slide(h1, body) { return ["div", h1.a(), body.a()]; },
+    body(line) { return line.a(); },
+    h1(text, nl) { return ["h1", text.a()]; },
+    ul(li) { return ["ul", li.a()]; },
+    li(bullet, space, text, nl) { return ["li", text.a()]; },
+    h2(text, nl) { return ["h2", text.a()]; },
+    text(chars) { return this.sourceString; }
+});
 s.addOperation("m", { // Generate Mithril nodes.
     _iter(...children) {
         return children.map(c => c.m());
@@ -143,6 +59,22 @@ s.addOperation("m", { // Generate Mithril nodes.
     ul(li) { return m("ul", li.m()); },
     li(bullet, space, text, nl) { return m("li", text.m()); },
     h2(text, nl) { return m("h2", text.m()); },
+    b(_1, text, _2) { return m("b", text.m()); },
+    i(_1, text, _2) { return m("i", text.m()); },
+    text(chars) { return this.sourceString; }
+});
+s.addOperation("md", { // Generate Mithril nodes.
+    _iter(...children) {
+        return children.map(c => c.md()).join("");
+    },
+    _terminal() { return this.sourceString; },
+
+    slide(h1, body) { return `${h1.md()}${body.md()}`; },
+    body(line) { return line.md(); }, 
+    h1(text, nl) { return `# ${text.md()}\n`; },
+    ul(li) { return li.md(); },
+    li(bullet, space, text, nl) { return `* ${text.md()}\n`; },
+    h2(text, nl) { return `## ${text.md()}\n`; },
     text(chars) { return this.sourceString; }
 });
 
@@ -162,52 +94,69 @@ function Slide() {
 function Slides() {
     function view(vnode) {
         return m("div.slides", { },
-                 vnode.attrs.presentation.map(
-                     (x) => s(g.match(x.join("\n"))).m()));
+                 s(g.match(presentation[current])).m());
     }
 
     return { view };
 }
 
 function Designer() {
-  function view(vnode) {
-    let n = vnode.attrs.n;
-    let data = vnode.attrs.data;
+    function view(vnode) {
+        let n = vnode.attrs.n;
+        let data = vnode.attrs.data;
+        
+        return m("div", 
+                 m("div.slide_controls" + (current === n ? ".slide_current" : ""),
+                   m("div", "Slide " + n),
+                   m("div",
+                     n != 0 && m("button", {
+                         title: "Move this slide up.",
+                         onclick: (e) => vnode.attrs.upping(n) },`\u{21d1}`),
+                     m("button", {
+                         title: "Duplicate this slide.",
+                         onclick: (e) => vnode.attrs.duping(n) }, `+`),
+                     m("button.danger", { 
+                         title: "Delete this slide.",
+                         onclick: (e) => vnode.attrs.removing(n) }, "x"))),
+                 m("textarea", {
+                     style: `aspect-ratio: ${aspect};`,
+                     onfocus: (e) => current = n,
+                     oninput: (e) => vnode.attrs.updating(n, e.target.value) 
+                 }, data));
+    }
     
-    return m("div", 
-      m("div.slide_controls",
-        m("div", "Slide " + n),
-        m("button", { 
-          title: "Click to remove this slide.",
-          onclick: (e) => vnode.attrs.removing(n) }, "x")),
-      m("textarea", { 
-        oninput: (e) => vnode.attrs.updating(n, e.target.value) 
-      }, data.join("\n")));
-  }
-  
-  return { view };
+    return { view };
 }
 
 function Page() {
-  function removing(n) {
-    delete presentation[n];
-  }
+    function upping(n) {
+        console.log("-- upping()");
+        [presentation[n-1], presentation[n]] =
+            [presentation[n], presentation[n-1]];
+    }
+
+    function duping(n) {
+        presentation.splice(n, 0, presentation[n]);
+    }
+    
+  function removing(n) { delete presentation[n]; }
   
   function updating(n, text) {
-    presentation[n] = text.split(/\n/)
+      presentation[n] = text;
   }
     
     function view(vnode) {
-        return m("div.bed", { },
-                 m("div.gui", { },
-                   m("div.instructions", instructions),
-                   presentation.map((data, n) => m(Designer, { data, n, updating, removing })),
-                   m("button", {
-                       title: "Click to add new slide.",
-                       onclick: (e) => presentation.push([
-                           "New Slide " + next++]) }, "+ slide")),
-                 m(Slides, { presentation }),
-                );
+        return [m("div.gui", { },
+                  m("div.instructions", instructions),
+                  presentation.map((data, n) => m(
+                      Designer, { data, n, updating,
+                                  upping, duping, removing })),
+                  m("div", { style: "display: flex; justify-content: end;" },
+                    m("button", {
+                        title: "Click to add new slide.",
+                        onclick: (e) => presentation.push([
+                            "New Slide " + next++]) }, "+ slide"))),
+                m(Slides, { presentation })];
     }
     
     return { view };
