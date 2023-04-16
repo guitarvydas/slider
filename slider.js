@@ -70,12 +70,15 @@ function Slide() {
         return m("div.slide", {
             style: `aspect-ratio: ${aspect}; position: relative;` },
                  vnode.children,
-                 m("div", { style: "position: absolute; left: 0; bottom: 30%;" },
-                   m("button.dimmed", { style: "padding: 1pc;", onclick: (e) => jumping(-1) }, "<<"),
-                   m("button.dimmed", { style: "padding: 1pc;" }, "edit"),
+                 m("div.absolute.bottom-30.left-0",
+                   m("button.pad-1.dimmed", {
+                       onclick: (e) => jumping(-1) }, "<<"),
+                   m(m.route.Link, { href: "/edit"},
+                     m("button.pad-1.dimmed", "edit")),
                   ),
-                 m("div", { style: "position: absolute; right: 0; bottom: 30%"},
-                   m("button.dimmed", { style: "padding: 1pc;", onclick: (e) => jumping(1) }, ">>"))
+                 m("div.absolute.bottom-30.right-0", 
+                   m("button.pad-1.dimmed", {
+                       onclick: (e) => jumping(1) }, ">>"))
                 );
      }
   
@@ -129,34 +132,62 @@ function Load() {
 
 
 function Edit() {
+
+    function linking() {
+
+    }
+    
     function upping(n) {
-        console.log("-- upping()");
-        [presentation[n-1], presentation[n]] =
-            [presentation[n], presentation[n-1]];
+        // ( n --) Move current slide up, follow.
+
+        let previous = n - 1;
+        [presentation[previous], presentation[n]] =
+            [presentation[n], presentation[previous]];
+        current = previous;
     }
 
     function duping(n) {
+        // ( n --) Duplicate slide n, jump to it.
+        
         presentation.splice(n, 0, presentation[n]);
+        current = n + 1;
     }
     
-  function removing(n) { delete presentation[n]; }
+    function removing(n) {
+        // ( n --) Remove slide n, jump to previous if needed.
+        
+        if(presentation.length > 1) { 
+            presentation.splice(n, 1);
+            if(undefined === presentation[current]) {
+                jumping(current - 1);
+            }
+        }
+    }
   
-  function updating(n, text) {
-      presentation[n] = text;
-  }
+    function updating(n, text) {
+        // ( n text --) Put new text into slide n.
+        
+        presentation[n] = text;
+    }
     
     function view(vnode) {
         return [m("div.gui", 
-                  m("div.instructions", instructions,
-                    m("div.flex",
+                  m("div.sticky.top-0.flex.flex-col.gap-4px",
+                    m("div", instructions),
+                    m("div.flex.gap-1",
                       m("button", {
                         title: "Click to add new slide.",
                         onclick: (e) => presentation.push([
                             "New Slide " + next++]) }, "+ slide"),
                       m("button", {
-                          title: "Click to play presentation.",
+                          title: "Click to show presentation.",
                           onclick: (e) => document.location = "#!/show"
-                      }, "play"))),
+                      }, "show"),
+                      m("button", {
+                          title: "Make a link to share presentation with.",
+                          onclick: (e) => linking()
+                      }, "share")
+                     )),
                   m("div.tray", 
                     presentation.map((data, n) => m(
                         Designer, { data, n, updating,
