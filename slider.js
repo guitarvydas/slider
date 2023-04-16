@@ -109,13 +109,13 @@ function Designer() {
                  m("div.slide_controls" + (current === n ? ".slide_current" : ""),
                    m("div", "Slide " + n),
                    m("div",
-                     n != 0 && m("button", {
+                     n != 0 && m("button.dimmed", {
                          title: "Move this slide up.",
                          onclick: (e) => vnode.attrs.upping(n) },`\u{21d1}`),
-                     m("button", {
+                     m("button.dimmed", {
                          title: "Duplicate this slide.",
                          onclick: (e) => vnode.attrs.duping(n) }, `+`),
-                     m("button.danger", { 
+                     m("button.danger.dimmed", { 
                          title: "Delete this slide.",
                          onclick: (e) => vnode.attrs.removing(n) }, "x"))),
                  m("textarea", {
@@ -128,7 +128,16 @@ function Designer() {
     return { view };
 }
 
-function Page() {
+
+function Load() {
+    function view() {
+    }
+
+    return { view } 
+}
+
+
+function Edit() {
     function upping(n) {
         console.log("-- upping()");
         [presentation[n-1], presentation[n]] =
@@ -146,20 +155,43 @@ function Page() {
   }
     
     function view(vnode) {
-        return [m("div.gui", { },
-                  m("div.instructions", instructions),
-                  presentation.map((data, n) => m(
-                      Designer, { data, n, updating,
-                                  upping, duping, removing })),
-                  m("div", { style: "display: flex; justify-content: end;" },
-                    m("button", {
+        return [m("div.gui", 
+                  m("div.instructions", instructions,
+                    m("div.flex",
+                      m("button", {
                         title: "Click to add new slide.",
                         onclick: (e) => presentation.push([
-                            "New Slide " + next++]) }, "+ slide"))),
+                            "New Slide " + next++]) }, "+ slide"),
+                      m("button", {
+                          title: "Click to play presentation.",
+                          onclick: (e) => document.location = "#!/show"
+                      }, "play"))),
+                  m("div.tray", 
+                    presentation.map((data, n) => m(
+                        Designer, { data, n, updating,
+                                    upping, duping, removing }))),
+                 ),
                 m(Slides, { presentation })];
     }
     
     return { view };
 }
 
-m.mount(document.getElementById("content"), Page);
+
+function Show() {
+    function view(vnode) {
+        return m("div", { style: "position: relative; display: flex; align-items: stretch;" },
+                 m(Slides, { presentation }),
+                 m("div", { style: "position: absolute; left: 0; bottom: 30%; background: red; width: 128px; height: 128px;" }, "something"));
+    }
+
+    return { view }
+}
+
+
+// m.mount(document.getElementById("content"), Page);
+m.route(document.getElementById("content"), "/edit", {
+    "/load": Load,
+    "/edit": Edit,
+    "/show": Show
+})
